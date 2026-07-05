@@ -31,10 +31,16 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
   const [selectedArtifact, setSelectedArtifact] = useState<Task | null>(null);
-
   const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
+    const savedKeys = localStorage.getItem('ai_team_keys');
+    if (savedKeys) setApiKeys(JSON.parse(savedKeys));
+    const savedHistory = localStorage.getItem('ai_team_history');
+    if (savedHistory) setMessages(JSON.parse(savedHistory));
+
     const checkApi = async () => {
       try {
         const url = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api/orchestrate').replace('/api/orchestrate', '');
@@ -46,13 +52,6 @@ const App: React.FC = () => {
       }
     };
     checkApi();
-  }, []);
-
-  return (
-    <div className="flex h-screen bg-[#020617] text-slate-300 font-sans selection:bg-blue-500/30 overflow-hidden">
-    if (savedKeys) setApiKeys(JSON.parse(savedKeys));
-    const savedHistory = localStorage.getItem('ai_team_history');
-    if (savedHistory) setMessages(JSON.parse(savedHistory));
   }, []);
 
   useEffect(() => {
@@ -167,7 +166,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="p-10 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent">
-            <div className="max-w-4xl mx-auto relative">
+            <div className="max-w-4xl mx-auto relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2rem] blur opacity-20 group-focus-within:opacity-40 transition duration-1000"></div>
               <div className="relative flex items-center bg-slate-900 border border-slate-800 rounded-[2rem] px-4 py-3 focus-within:border-blue-500/50 transition-all shadow-2xl">
                 <input
