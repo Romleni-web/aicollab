@@ -32,10 +32,24 @@ const App: React.FC = () => {
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
   const [selectedArtifact, setSelectedArtifact] = useState<Task | null>(null);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
   useEffect(() => {
-    const savedKeys = localStorage.getItem('ai_team_keys');
+    const checkApi = async () => {
+      try {
+        const url = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api/orchestrate').replace('/api/orchestrate', '');
+        const res = await fetch(url || '/');
+        if (res.ok) setApiStatus('online');
+        else setApiStatus('offline');
+      } catch (e) {
+        setApiStatus('offline');
+      }
+    };
+    checkApi();
+  }, []);
+
+  return (
+    <div className="flex h-screen bg-[#020617] text-slate-300 font-sans selection:bg-blue-500/30 overflow-hidden">
     if (savedKeys) setApiKeys(JSON.parse(savedKeys));
     const savedHistory = localStorage.getItem('ai_team_history');
     if (savedHistory) setMessages(JSON.parse(savedHistory));
@@ -104,8 +118,8 @@ const App: React.FC = () => {
             </div>
             <div className="flex items-center gap-4">
               <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-                Engine Online
+                <div className={`w-1.5 h-1.5 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)] ${apiStatus === 'online' ? 'bg-green-500' : apiStatus === 'offline' ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`}></div>
+                {apiStatus === 'online' ? 'Engine Online' : apiStatus === 'offline' ? 'Engine Offline' : 'Verifying...'}
               </div>
             </div>
           </header>
