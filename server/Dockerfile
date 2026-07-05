@@ -1,23 +1,26 @@
-# Use a standard node image
-FROM node:20-slim
+# Use the full Node image to ensure all build tools are available
+FROM node:20
 
 # Create app directory
-WORKDIR /usr/src/app
+WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install ALL dependencies (including devDependencies like typescript)
+# Install dependencies
 RUN npm install
 
-# Copy the rest of the server code
+# Install TypeScript globally to fix permission issues with local binaries
+RUN npm install -g typescript
+
+# Copy the rest of the source code
 COPY . .
 
-# Build the project using npx to ensure tsc is found
-RUN npx tsc
+# Run the compiler directly using the global tsc
+RUN tsc
 
-# Expose the port
+# Expose the production port
 EXPOSE 3001
 
-# Start the server
+# Start the server using the compiled JS
 CMD ["node", "dist/index.js"]
