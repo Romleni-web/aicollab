@@ -7,7 +7,6 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const app = express();
 
-// Adjust Helmet for local development to prevent CSP blocks
 app.use(helmet({
   contentSecurityPolicy: false,
 }));
@@ -17,9 +16,8 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 
-// Root route to prevent 404
 app.get('/', (req, res) => {
-  res.json({ status: 'Orchestrator API is Online', version: '1.0.0' });
+  res.json({ status: 'Orchestrator API is Online', version: '1.0.1' });
 });
 
 const TaskSchema = z.object({
@@ -35,13 +33,12 @@ app.post('/api/orchestrate', async (req, res) => {
   const { request, apiKeys } = req.body;
 
   if (!apiKeys || !apiKeys.openai) {
-    return res.status(400).json({ error: 'OpenAI API key is required in Settings.' });
+    return res.status(400).json({ error: 'OpenAI API key is required.' });
   }
 
   try {
     const openai = new OpenAI({ apiKey: apiKeys.openai });
 
-    // 1. PLANNING
     const planResponse = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -55,7 +52,6 @@ app.post('/api/orchestrate', async (req, res) => {
     const parsed = JSON.parse(rawContent);
     const tasks = PlanSchema.parse(Array.isArray(parsed) ? parsed : (parsed.tasks || []));
 
-    // 2. EXECUTION
     const executionPromises = tasks.map(async (task) => {
       try {
         if (task.provider === 'openai') {
@@ -64,18 +60,17 @@ app.post('/api/orchestrate', async (req, res) => {
             model: 'gpt-4o',
             messages: [{ role: 'user', content: `Task: ${task.description}. Context: ${request}` }]
           });
-          return { ...task, result: response.choices[0].message.content, status: 'completed' };
+          return { ...task, result: response.choices[0].message.content, status: 'completed' as const };
         }
-        return { ...task, result: 'Provider not configured', status: 'failed' };
+        return { ...task, result: 'Provider not configured', status: 'failed' as const };
       } catch (err: any) {
-        return { ...task, result: err.message, status: 'failed' };
+        return { ...task, result: err.message, status: 'failed' as const };
       }
     });
 
     const completedTasks = await Promise.all(executionPromises);
     const successfulResults = completedTasks.filter(t => t.status === 'completed').map(t => t.result);
 
-    // 3. SYNTHESIS
     const synthesis = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [{ role: 'user', content: `Merge results for "${request}":\n\n${successfulResults.join('\n\n')}` }]
